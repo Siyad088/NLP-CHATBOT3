@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioScan AI - Animal Classification & Habitat Intelligence</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            450: '#10b981',
+                            950: '#022c22',
+                        },
+                        dark: {
+                            900: '#0b1311',
+                            800: '#121e1a',
+                            700: '#1a2b25',
+                            600: '#253d34',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.6);
+        }
+        .glass-panel {
+            background: rgba(18, 30, 26, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(45, 212, 191, 0.15);
+        }
+        .glass-card {
+            background: rgba(26, 43, 37, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .scan-line {
+            background: linear-gradient(to bottom, transparent, rgba(16, 185, 129, 0.6), transparent);
+            animation: scan 2.5s infinite ease-in-out;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+            50% { box-shadow: 0 0 30px rgba(16, 185, 129, 0.5); }
+        }
+        .glow-active {
+            animation: pulseGlow 3s infinite;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-slate-100 font-sans h-full flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-16 border-b border-emerald-900/40 bg-dark-900/90 backdrop-filter backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-dark-900 shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid fa-paw text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-wide bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-200 bg-clip-text text-transparent">BioScan AI</h1>
+                <p class="text-xs text-emerald-500/80 font-medium">Fauna Identification & Species Intelligence</p>
+            </div>
+        </div>
+
+        <!-- Quick Stats & Tools -->
+        <div class="flex items-center gap-3">
+            <div class="hidden sm:flex items-center gap-2 bg-dark-800/80 px-3 py-1.5 rounded-full border border-emerald-500/20 text-xs text-emerald-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Neural Model v4.2 Ready</span>
+            </div>
+            <button id="resetAppBtn" class="px-3 py-1.5 rounded-lg bg-dark-700/60 hover:bg-dark-600 text-xs font-semibold text-slate-300 transition-all border border-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="hidden sm:inline">New Analysis</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0 relative">
+        
+        <!-- LEFT / MAIN WORKSPACE: Upload, Scanner & Classification Info -->
+        <section class="lg:col-span-7 xl:col-span-7 flex flex-col h-full overflow-y-auto p-4 lg:p-6 space-y-6">
+            
+            <!-- Upload Zone -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[320px] border-2 border-dashed border-emerald-500/30 hover:border-emerald-400/60 transition-all group" id="dropZone">
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                
+                <!-- Initial State (Clean start, No image selected) -->
+                <div id="uploadPrompt" class="flex flex-col items-center text-center p-4 max-w-md">
+                    <div class="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform duration-300 shadow-xl shadow-emerald-500/5">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-100 mb-1">Upload Animal Image</h3>
+                    <p class="text-xs text-slate-400 mb-5 leading-relaxed">Drag & drop any animal photo, browse from your device, or paste an image URL to identify species, habitat, diet & ecological details.</p>
+                    
+                    <div class="flex flex-wrap justify-center gap-3 w-full">
+                        <button onclick="document.getElementById('fileInput').click()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-900 font-bold text-xs tracking-wide transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+                            <i class="fa-solid fa-folder-open"></i> Choose Image File
+                        </button>
+                        <button id="urlPromptBtn" class="px-4 py-2.5 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-200 font-semibold text-xs transition-all border border-slate-600 flex items-center gap-2">
+                            <i class="fa-solid fa-link"></i> Paste Image URL
+                        </button>
+                    </div>
+
+                    <!-- URL Input Drawer (Hidden by default) -->
+                    <div id="urlInputContainer" class="hidden w-full mt-4 flex gap-2">
+                        <input type="url" id="imageUrlInput" placeholder="https://example.com/animal.jpg" class="flex-1 bg-dark-900 border border-emerald-500/30 focus:border-emerald-400 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none">
+                        <button id="loadUrlBtn" class="px-3 py-2 rounded-xl bg-emerald-500 text-dark-900 font-bold text-xs">Load</button>
+                    </div>
+                </div>
+
+                <!-- Preview State (Image Loaded / Scanning) -->
+                <div id="previewContainer" class="hidden w-full h-full flex flex-col items-center justify-center relative">
+                    <div class="relative max-h-[380px] w-full flex justify-center items-center rounded-xl overflow-hidden bg-black/40 border border-emerald-500/30">
+                        <img id="imagePreview" src="" alt="Uploaded Wildlife" class="max-h-[380px] w-auto object-contain rounded-lg">
+                        
+                        <!-- Scanning Overlay Line -->
+                        <div id="scanOverlay" class="hidden absolute inset-0 scan-line pointer-events-none"></div>
+
+                        <!-- Badge Overlay -->
+                        <div id="scanBadge" class="hidden absolute top-3 left-3 bg-dark-900/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-500/40 text-emerald-400 text-xs font-mono flex items-center gap-2">
+                            <i class="fa-solid fa-circle-notch animate-spin"></i> Neural Classifier Processing...
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex gap-3">
+                        <button onclick="document.getElementById('fileInput').click()" class="px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 border border-slate-700 text-slate-300 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-arrows-rotate"></i> Analyze Different Animal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Classification Results Dashboard -->
+            <div id="resultDashboard" class="space-y-4 hidden transition-all duration-500">
+                
+                <!-- Main Species Banner -->
+                <div class="glass-panel rounded-2xl p-5 border-l-4 border-l-emerald-400 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span id="resCategory" class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Mammal</span>
+                            <span id="resStatusBadge" class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">Endangered</span>
+                        </div>
+                        <h2 id="resCommonName" class="text-2xl font-extrabold text-white tracking-tight">--</h2>
+                        <p id="resScientificName" class="text-sm text-emerald-400/90 italic font-medium">--</p>
+                    </div>
+                    <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-700/50">
+                        <span class="text-xs text-slate-400">Match Confidence</span>
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 bg-dark-900 h-2 rounded-full overflow-hidden border border-emerald-500/20">
+                                <div id="confidenceBar" class="bg-gradient-to-r from-emerald-500 to-teal-300 h-full w-0 transition-all duration-1000"></div>
+                            </div>
+                            <span id="resConfidence" class="text-base font-bold text-emerald-300 font-mono">0.0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Intelligence Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    <!-- Habitat Card -->
+                    <div class="glass-card p-4 rounded-xl flex flex-col justify-between">
+                        <div class="flex items-center gap-2 text-emerald-400 mb-2">
+                            <i class="fa-solid fa-tree text-sm"></i>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Natural Habitat</h4>
+                        </div>
+                        <p id="resHabitat" class="text-xs text-slate-200 leading-relaxed">--</p>
+                    </div>
+
+                    <!-- Diet & Trophic Card -->
+                    <div class="glass-card p-4 rounded-xl flex flex-col justify-between">
+                        <div class="flex items-center gap-2 text-emerald-400 mb-2">
+                            <i class="fa-solid fa-utensils text-sm"></i>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Dietary Classification</h4>
+                        </div>
+                        <p id="resDiet" class="text-xs text-slate-200 leading-relaxed">--</p>
+                    </div>
+
+                    <!-- Key Traits -->
+                    <div class="glass-card p-4 rounded-xl flex flex-col justify-between">
+                        <div class="flex items-center gap-2 text-emerald-400 mb-2">
+                            <i class="fa-solid fa-dna text-sm"></i>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300">Distinct Features</h4>
+                        </div>
+                        <p id="resTraits" class="text-xs text-slate-200 leading-relaxed">--</p>
+                    </div>
+                </div>
+
+                <!-- Fun Fact Banner -->
+                <div class="glass-card p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 via-dark-800 to-dark-800 border-l-2 border-yellow-400 flex items-start gap-3">
+                    <div class="text-yellow-400 text-lg mt-0.5">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-yellow-400 uppercase tracking-wider">Bio Intelligence Fact</h4>
+                        <p id="resFunFact" class="text-xs text-slate-300 mt-0.5 leading-relaxed">--</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- RIGHT SIDEBAR: Conversational AI Chat -->
+        <section class="lg:col-span-5 xl:col-span-5 border-t lg:border-t-0 lg:border-l border-emerald-900/40 bg-dark-900/70 flex flex-col h-[550px] lg:h-full">
+
+            </div>
+        </section>
+
+        <!-- RIGHT SIDEBAR: Conversational AI Chat -->
+        <section class="lg:col-span-5 xl:col-span-4 border-t lg:border-t-0 lg:border-l border-emerald-900/40 bg-dark-900/70 flex flex-col h-[550px] lg:h-full">
+            
+            <!-- Chat Header -->
+            <div class="p-4 border-b border-emerald-900/40 flex items-center justify-between bg-dark-800/50">
+                <div class="flex items-center gap-2.5">
+                    <div class="relative">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                            <i class="fa-solid fa-robot text-sm"></i>
+                        </div>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-dark-900"></span>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-100">Zoology AI Assistant</h3>
+                        <p class="text-[10px] text-emerald-400 font-medium">Context-Aware Wildlife Expert</p>
+                    </div>
+                </div>
+                <button id="clearChatBtn" class="text-xs text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-dark-700 transition-colors" title="Clear Chat History">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </div>
+
+            <!-- Chat Messages Container -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+                <!-- Initial Bot Welcome Message -->
+                <div class="flex gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                        <i class="fa-solid fa-paw text-xs"></i>
+                    </div>
+                    <div class="glass-card p-3 rounded-2xl rounded-tl-none max-w-[85%] text-slate-200 leading-relaxed border border-emerald-500/10">
+                        Hello! Upload or drag & drop an animal photo to get started. Once classified, I can answer any questions regarding its behavior, habitat, diet, and conservation status!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Follow-up Question Chips -->
+            <div class="px-4 py-2 border-t border-emerald-900/20 bg-dark-800/30 overflow-x-auto whitespace-nowrap flex gap-2 no-scrollbar" id="chipContainer">
+                <button class="chat-chip px-3 py-1 rounded-full bg-dark-700/80 hover:bg-emerald-600/30 border border-emerald-500/20 text-emerald-300 text-[11px] transition-all">
+                    🌍 Natural habitat?
+                </button>
+                <button class="chat-chip px-3 py-1 rounded-full bg-dark-700/80 hover:bg-emerald-600/30 border border-emerald-500/20 text-emerald-300 text-[11px] transition-all">
+                    🍖 What does it eat?
+                </button>
+                <button class="chat-chip px-3 py-1 rounded-full bg-dark-700/80 hover:bg-emerald-600/30 border border-emerald-500/20 text-emerald-300 text-[11px] transition-all">
+                    ⚠️ Is it endangered?
+                </button>
+                <button class="chat-chip px-3 py-1 rounded-full bg-dark-700/80 hover:bg-emerald-600/30 border border-emerald-500/20 text-emerald-300 text-[11px] transition-all">
+                    ✨ Unique behaviors?
+                </button>
+            </div>
+
+            <!-- Input Form -->
+            <form id="chatForm" class="p-3 border-t border-emerald-900/40 bg-dark-800/70 flex gap-2 items-center">
+                <input type="text" id="chatInput" placeholder="Ask follow-up questions about this species..." class="flex-1 bg-dark-900 border border-emerald-500/20 focus:border-emerald-400 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-colors">
+                <button type="submit" class="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-900 font-bold flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 shrink-0">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- JS Logic -->
+    <script>
+        // Animal Knowledge Repository for flexible image classification simulation
+        const animalKnowledgeBase = [
+            {
+                keywords: ['tiger', 'cat', 'panther', 'feline', 'stripes'],
+                commonName: 'Bengal Tiger',
+                scientificName: 'Panthera tigris tigris',
+                category: 'Mammal',
+                status: 'Endangered',
+                statusClass: 'bg-red-500/20 text-red-300 border-red-500/30',
+                confidence: '98.7%',
+                habitat: 'Tropical moist evergreen forests, mangrove swamps, and tall grasslands across South Asia.',
+                diet: 'Apex Carnivore. Prefers large ungulates like deer, wild boar, and water buffalo.',
+                traits: 'Distinctive reddish-orange coat with dark vertical stripes. Powerful swimmer and solitary predator.',
+                funFact: 'No two tigers have the exact same stripe pattern—their stripes are as unique as human fingerprints!',
+                chatContext: {
+                    habitat: 'Bengal Tigers live in tropical rainforests, grasslands, and mangrove swamps in India, Nepal, Bhutan, and Bangladesh.',
+                    diet: 'They consume around 18-40 kg of meat after a successful hunt. Key prey includes sambar deer, chital, and wild boars.',
+                    status: 'Listed as Endangered due to habitat fragmentation and illegal poaching.',
+                    unique: 'Unlike most domestic cats, tigers love water and regularly swim to cool off or pursue prey.'
+                }
+            },
+            {
+                keywords: ['lion', 'cub', 'mane', 'safari'],
+                commonName: 'African Lion',
+                scientificName: 'Panthera leo',
+                category: 'Mammal',
+                status: 'Vulnerable',
+                statusClass: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+                confidence: '96.4%',
+                habitat: 'Savannahs, grasslands, dense bush, and open woodlands in sub-Saharan Africa.',
+                diet: 'Carnivore. Prides hunt cooperatively targeting zebras, wildebeests, and buffaloes.',
+                traits: 'Males feature impressive dark manes. Lions are the most social of all wild feline species, living in prides.',
+                funFact: 'A lion\'s roar can be heard from up to 5 miles (8 kilometers) away!',
+                chatContext: {
+                    habitat: 'Mainly found in African grasslands and savannahs. A small isolated population of Asiatic lions lives in India\'s Gir Forest.',
+                    diet: 'Cooperative hunters targeting large mammals like zebras, impalas, wildebeests, and buffaloes.',
+                    status: 'Vulnerable due to habitat loss, human conflict, and prey depletion.',
+                    unique: 'Lions spend up to 20 hours a day resting to conserve energy for night hunting.'
+                }
+            },
+            {
+                keywords: ['elephant', 'trunk', 'tusk'],
+                commonName: 'African Bush Elephant',
+                scientificName: 'Loxodonta africana',
+                category: 'Mammal',
+                status: 'Endangered',
+                statusClass: 'bg-red-500/20 text-red-300 border-red-500/30',
+                confidence: '99.2%',
+                habitat: 'Savannahs, forests, deserts, and marshes across sub-Saharan Africa.',
+                diet: 'Herbivore. Eats grasses, leaves, bark, fruits, and roots (up to 150kg daily).',
+                traits: 'Largest land animal on Earth. High intelligence, large fan-like ears, and versatile trunk with over 40,000 muscles.',
+                funFact: 'Elephants communicate over long distances using low-frequency infrasonic vibrations that travel through the ground!',
+                chatContext: {
+                    habitat: 'Diverse habitats ranging from dense African rainforests to arid savannahs and deserts.',
+                    diet: 'Purely herbivorous. They spend up to 16 hours a day consuming vegetation and drinking up to 190 liters of water.',
+                    status: 'Endangered primarily due to illegal ivory poaching and human encroachment on migration corridors.',
+                    unique: 'They exhibit complex emotions like empathy and grief, and can recognize their own reflection in mirrors.'
+                }
+            },
+            {
+                keywords: ['eagle', 'hawk', 'bird', 'raptor', 'falcon'],
+                commonName: 'Bald Eagle',
+                scientificName: 'Haliaeetus leucocephalus',
+                category: 'Avian',
+                status: 'Least Concern',
+                statusClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                confidence: '97.8%',
+                habitat: 'Near large bodies of open water with abundant fish and tall trees for nesting in North America.',
+                diet: 'Piscivore / Carnivore. Mainly fish (salmon, trout) along with waterfowl and small mammals.',
+                traits: 'White head and tail contrasting with dark brown body, yellow hooked beak, and immense wingspan up to 8 feet.',
+                funFact: 'Bald eagles build the largest tree nests of any bird species—some weigh over 2 tons!',
+                chatContext: {
+                    habitat: 'Coastal waters, rivers, lakes, and reservoirs across North America.',
+                    diet: 'Primarily fish, which they snatch from the water with sharp talons. They also scavenge carrion.',
+                    status: 'Least Concern. A famous conservation success story, recovering from severe pesticide threats.',
+                    unique: 'Their keen eyesight is estimated to be 4 to 8 times stronger than that of an average human.'
+                }
+            },
+            {
+                keywords: ['wolf', 'canine', 'dog'],
+                commonName: 'Gray Wolf',
+                scientificName: 'Canis lupus',
+                category: 'Mammal',
+                status: 'Least Concern',
+                statusClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+                confidence: '95.9%',
+                habitat: 'Tundra, boreal forests, mountains, and temperate grasslands of the Northern Hemisphere.',
+                diet: 'Carnivore. Pack hunter targeting large ungulates like elk, moose, deer, and bison.',
+                traits: 'Highly social pack structures led by an alpha pair. Dense winter fur and incredible endurance tracking prey.',
+                funFact: 'Gray wolves can travel over 30 miles in a single day while hunting or defending territory!',
+                chatContext: {
+                    habitat: 'Forests, tundra, and mountainous wilderness in North America, Europe, and Asia.',
+                    diet: 'Preys on ungulates (elk, deer, moose). A pack works together to isolate weak or old animals.',
+                    status: 'Least Concern overall, though localized subspecies face protected status.',
+                    unique: 'Howling is used to assemble the pack, locate members over long distances, and warn rival packs.'
+                }
+            }
+        ];
+
+        // Currently classified animal state
+        let currentAnimal = null;
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const scanOverlay = document.getElementById('scanOverlay');
+        const scanBadge = document.getElementById('scanBadge');
+        const resultDashboard = document.getElementById('resultDashboard');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const chipContainer = document.getElementById('chipContainer');
+        const urlPromptBtn = document.getElementById('urlPromptBtn');
+        const urlInputContainer = document.getElementById('urlInputContainer');
+        const imageUrlInput = document.getElementById('imageUrlInput');
+        const loadUrlBtn = document.getElementById('loadUrlBtn');
+
+        // Toggle URL input bar
+        urlPromptBtn.addEventListener('click', () => {
+            urlInputContainer.classList.toggle('hidden');
+        });
+
+        loadUrlBtn.addEventListener('click', () => {
+            const url = imageUrlInput.value.trim();
+            if (url) {
+                runClassificationProcess(url, url);
+            }
+        });
+
+        // Trigger AI Classification simulation
+        function runClassificationProcess(imageSrc, filenameOrUrl = '') {
+            uploadPrompt.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+            imagePreview.src = imageSrc;
+            
+            scanOverlay.classList.remove('hidden');
+            scanBadge.classList.remove('hidden');
+            resultDashboard.classList.add('hidden');
+
+            // Select match based on file string or fallback to dynamic knowledge base entry
+            const queryStr = (filenameOrUrl || '').toLowerCase();
+            let matched = animalKnowledgeBase.find(item => 
+                item.keywords.some(k => queryStr.includes(k))
+            );
+
+            if (!matched) {
+                // Generate flexible result for arbitrary uploaded images
+                const fallbackIndex = Math.abs(queryStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % animalKnowledgeBase.length;
+                matched = { ...animalKnowledgeBase[fallbackIndex] };
+            }
+            
+            currentAnimal = matched;
+
+            // Simulate Processing Delay
+            setTimeout(() => {
+                scanOverlay.classList.add('hidden');
+                scanBadge.classList.add('hidden');
+                
+                // Populate Dashboard Fields
+                document.getElementById('resCategory').innerText = matched.category;
+                document.getElementById('resStatusBadge').innerText = matched.status;
+                document.getElementById('resStatusBadge').className = `text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded ${matched.statusClass}`;
+                document.getElementById('resCommonName').innerText = matched.commonName;
+                document.getElementById('resScientificName').innerText = matched.scientificName;
+                document.getElementById('resConfidence').innerText = matched.confidence;
+                document.getElementById('confidenceBar').style.width = matched.confidence;
+                document.getElementById('resHabitat').innerText = matched.habitat;
+                document.getElementById('resDiet').innerText = matched.diet;
+                document.getElementById('resTraits').innerText = matched.traits;
+                document.getElementById('resFunFact').innerText = matched.funFact;
+
+                resultDashboard.classList.remove('hidden');
+
+                // Clear previous messages and welcome user with the detected animal
+                chatMessages.innerHTML = '';
+                appendBotMessage(`🔬 **Species Classified**: Identified as **${matched.commonName}** (*${matched.scientificName}*) with **${matched.confidence}** confidence. Ask me any questions about its diet, habitat, or behaviors!`);
+            }, 1600);
+        }
+
+        // File Input Handler
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    runClassificationProcess(event.target.result, file.name);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag & Drop Handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-emerald-400', 'bg-emerald-950/20');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-emerald-400', 'bg-emerald-950/20');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-emerald-400', 'bg-emerald-950/20');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const file = e.dataTransfer.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    runClassificationProcess(event.target.result, file.name);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Chat UI Helpers
+        function appendUserMessage(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex justify-end';
+            msgDiv.innerHTML = `
+                <div class="bg-emerald-600 text-slate-900 font-medium p-3 rounded-2xl rounded-tr-none max-w-[85%] text-xs leading-relaxed shadow-md">
+                    ${escapeHtml(text)}
+                </div>
+            `;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function appendBotMessage(text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'flex gap-3';
+            msgDiv.innerHTML = `
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                    <i class="fa-solid fa-paw text-xs"></i>
+                </div>
+                <div class="glass-card p-3 rounded-2xl rounded-tl-none max-w-[85%] text-slate-200 leading-relaxed border border-emerald-500/10">
+                    ${formatMarkdown(text)}
+                </div>
+            `;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function formatMarkdown(text) {
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-emerald-300 font-semibold">$1</strong>');
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Context-Aware Bot Logic
+        function generateAIResponse(userQuery) {
+            if (!currentAnimal) {
+                setTimeout(() => {
+                    appendBotMessage("Please upload an animal image first so I can analyze the species and provide specific details!");
+                }, 400);
+                return;
+            }
+
+            const q = userQuery.toLowerCase();
+            const ctx = currentAnimal.chatContext || {};
+
+            let reply = "";
+
+            if (q.includes('habitat') || q.includes('where') || q.includes('live') || q.includes('location') || q.includes('region')) {
+                reply = ctx.habitat ? `**Natural Habitat of ${currentAnimal.commonName}:** ${ctx.habitat}` : `The **${currentAnimal.commonName}** resides in: ${currentAnimal.habitat}`;
+            } else if (q.includes('eat') || q.includes('diet') || q.includes('food') || q.includes('prey') || q.includes('predator')) {
+                reply = ctx.diet ? `**Dietary Profile:** ${ctx.diet}` : `The **${currentAnimal.commonName}**'s diet: ${currentAnimal.diet}`;
+            } else if (q.includes('endangered') || q.includes('status') || q.includes('threat') || q.includes('conservation')) {
+                reply = ctx.status ? `**Conservation Status (${currentAnimal.status}):** ${ctx.status}` : `Current status: **${currentAnimal.status}**.`;
+            } else if (q.includes('unique') || q.includes('fact') || q.includes('behavior') || q.includes('trait')) {
+                reply = ctx.unique ? `**Notable Feature:** ${ctx.unique}` : `Key physical trait: ${currentAnimal.traits}`;
+            } else {
+                reply = `Regarding the **${currentAnimal.commonName}** (*${currentAnimal.scientificName}*): It is categorized as a **${currentAnimal.category}**. ${currentAnimal.traits} Would you like more details about its natural diet or conservation status?`;
+            }
+
+            setTimeout(() => {
+                appendBotMessage(reply);
+            }, 500);
+        }
+
+        // Submit message
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (text) {
+                appendUserMessage(text);
+                chatInput.value = '';
+                generateAIResponse(text);
+            }
+        });
+
+        // Prompt Chips
+        chipContainer.querySelectorAll('.chat-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const question = chip.innerText.replace(/^[^\w\s]+/, '').trim();
+                appendUserMessage(question);
+                generateAIResponse(question);
+            });
+        });
+
+        // Clear Chat
+        document.getElementById('clearChatBtn').addEventListener('click', () => {
+            chatMessages.innerHTML = '';
+            if (currentAnimal) {
+                appendBotMessage(`Chat reset. I am ready to answer more questions about the **${currentAnimal.commonName}**.`);
+            } else {
+                appendBotMessage("Chat history cleared. Upload an animal image to begin classification!");
+            }
+        });
+
+        // Reset Workspace
+        document.getElementById('resetAppBtn').addEventListener('click', () => {
+            currentAnimal = null;
+            previewContainer.classList.add('hidden');
+            uploadPrompt.classList.remove('hidden');
+            urlInputContainer.classList.add('hidden');
+            resultDashboard.classList.add('hidden');
+            fileInput.value = '';
+            chatMessages.innerHTML = `
+                <div class="flex gap-3">
+                    <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                        <i class="fa-solid fa-paw text-xs"></i>
+                    </div>
+                    <div class="glass-card p-3 rounded-2xl rounded-tl-none max-w-[85%] text-slate-200 leading-relaxed border border-emerald-500/10">
+                        Hello! Upload or drag & drop an animal photo to get started. Once classified, I can answer any questions regarding its behavior, habitat, diet, and conservation status!
+                    </div>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
